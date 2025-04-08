@@ -1,103 +1,157 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useState } from 'react';
+
+export default function Page() {
+  const [jsonInput, setJsonInput] = useState('');
+  const [jqQuery, setJqQuery] = useState('');
+  const [output, setOutput] = useState('Output will appear here...');
+  const [isRunning, setIsRunning] = useState(false);
+  const [savedQueries, setSavedQueries] = useState<{ name: string; query: string }[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('savedQueries');
+    if (saved) setSavedQueries(JSON.parse(saved));
+
+    const lastJson = localStorage.getItem('jsonInput');
+    const lastQuery = localStorage.getItem('jqQuery');
+    if (lastJson) setJsonInput(lastJson);
+    if (lastQuery) setJqQuery(lastQuery);
+  }, []);
+
+  const handleRun = async () => {
+    setIsRunning(true);
+    try {
+      const res = await fetch('/api/jq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          json: JSON.parse(jsonInput),
+          query: jqQuery,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setOutput(data.result);
+      } else {
+        setOutput(`❌ Error: ${data.error}`);
+      }
+    } catch (err: any) {
+      setOutput(`❌ Error: ${err.message}`);
+    }
+    setIsRunning(false);
+  };
+
+  const handleSaveQuery = () => {
+    const name = prompt('Name this query:');
+    if (!name) return;
+
+    const newQueries = [...savedQueries, { name, query: jqQuery }];
+    setSavedQueries(newQueries);
+    localStorage.setItem('savedQueries', JSON.stringify(newQueries));
+  };
+
+  const handleDeleteQuery = (index: number) => {
+    const confirmed = confirm('Are you sure you want to delete this query?');
+    if (!confirmed) return;
+
+    const updated = [...savedQueries];
+    updated.splice(index, 1);
+    setSavedQueries(updated);
+    localStorage.setItem('savedQueries', JSON.stringify(updated));
+  };
+
+  const handleEditQuery = (index: number) => {
+    const newName = prompt('Edit query name:', savedQueries[index].name);
+    if (!newName) return;
+
+    const updated = [...savedQueries];
+    updated[index].name = newName;
+    setSavedQueries(updated);
+    localStorage.setItem('savedQueries', JSON.stringify(updated));
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="min-h-screen bg-zinc-950 text-white p-6">
+      <h1 className="text-3xl font-bold mb-4">TryIt.dev – jq Playground</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      <div className="flex flex-col gap-4">
+        <textarea
+          placeholder="Paste your JSON here..."
+          className="w-full h-48 p-4 bg-zinc-800 rounded-md text-sm font-mono outline-none resize-y"
+          value={jsonInput}
+          onChange={(e) => {
+            setJsonInput(e.target.value);
+            localStorage.setItem('jsonInput', e.target.value);
+          }}
+        />
+
+        <input
+          placeholder="Enter your jq query..."
+          className="w-full p-4 bg-zinc-800 rounded-md text-sm font-mono outline-none"
+          value={jqQuery}
+          onChange={(e) => {
+            setJqQuery(e.target.value);
+            localStorage.setItem('jqQuery', e.target.value);
+          }}
+        />
+
+        <div className="flex gap-2">
+          <button
+            className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md disabled:opacity-60"
+            onClick={handleRun}
+            disabled={isRunning}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            {isRunning ? 'Running...' : 'Run'}
+          </button>
+
+          <button
+            className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md"
+            onClick={handleSaveQuery}
           >
-            Read our docs
-          </a>
+            Save Query
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        <pre className="bg-zinc-900 p-4 rounded-md text-sm font-mono overflow-auto whitespace-pre-wrap">
+          {output}
+        </pre>
+
+        <div className="bg-zinc-800 p-4 rounded-md mt-4">
+          <h2 className="text-lg font-semibold mb-2">Saved Queries</h2>
+          {savedQueries.length === 0 ? (
+            <p className="text-sm text-zinc-400">No saved queries yet.</p>
+          ) : (
+            <ul className="text-sm space-y-1">
+              {savedQueries.map((q, i) => (
+                <li key={i} className="flex items-center justify-between">
+                  <button
+                    className="hover:underline text-green-400 text-left"
+                    onClick={() => setJqQuery(q.query)}
+                  >
+                    {q.name}
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEditQuery(i)}
+                      className="text-yellow-400 hover:underline text-xs"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteQuery(i)}
+                      className="text-red-400 hover:underline text-xs"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </main>
   );
 }
