@@ -18,9 +18,9 @@ export default function Home() {
     },
     {
       name: 'cURL Playground',
-      href: '#',
+      href: '/tools/curl',
       description: 'Craft and test cURL commands',
-      available: false,
+      available: true,
     },
     {
       name: 'Base64 Encoder/Decoder',
