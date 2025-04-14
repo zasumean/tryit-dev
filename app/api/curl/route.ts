@@ -1,4 +1,4 @@
-// app/api/curl/route.ts (for app directory routing)
+// app/api/curl/route.ts
 
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
@@ -16,7 +16,9 @@ export async function POST(req: Request) {
   try {
     const { stdout, stderr } = await execAsync(command);
     return new NextResponse(stdout || stderr);
-  } catch (err: any) {
-    return new NextResponse(err.message, { status: 500 });
+  } catch (err) {
+    const error = err as Error;
+    return new NextResponse(error.message, { status: 500 });
   }
 }
+
