@@ -24,9 +24,9 @@ export default function Home() {
     },
     {
       name: 'Base64 Encoder/Decoder',
-      href: '#',
+      href: '/tools/base64',
       description: 'Encode or decode Base64 strings',
-      available: false,
+      available: true,
     },
     {
       name: 'JWT Decoder',
